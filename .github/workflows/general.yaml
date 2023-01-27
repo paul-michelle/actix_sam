@@ -1,0 +1,76 @@
+name: Lint, Test
+
+on:
+  push:
+    paths:
+      - src/**/*.rs
+      - tests/**/*.rs
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+      - .github/workflows/*.yaml
+      - Makefile
+    branches:
+      - master
+      - develop
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        uses: actions/checkout@v3
+      - 
+        uses: actions/cache@v3
+        id: cache-deps
+        env:
+          cache-name: cache-target
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            target/
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+      -
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            profile: minimal
+            components: rustfmt, clippy
+      - 
+        run: make lint
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      TARPAULIN_VERSION: 0.23.1
+    steps:
+      - 
+        uses: actions/checkout@v3
+      - 
+        uses: actions/cache@v3
+        id: cache-deps
+        env:
+          cache-name: cache-target
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            target/
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+      - 
+        uses: actions/cache@v3
+        id: cache-tarpaulin
+        with:
+          path: ~/.cargo/bin/cargo-tarpaulin
+          key: ${{ runner.os }}-tarpaulin-${{ env.TARPAULIN_VERSION }}      
+      - 
+        if: ${{ steps.cache-tarpaulin.outputs.cache-hit != 'true' }}
+        run: cargo install cargo-tarpaulin --version=${{ env.TARPAULIN_VERSION }}
+
+      - uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            profile: minimal
+      -
+        run: make coverage
