@@ -32,11 +32,9 @@ jobs:
             target/
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
       -
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: nightly
-            profile: minimal
-            components: rustfmt, clippy
+        run: |
+          rustup set profile minimal
+          rustup toolchain install nightly
       - 
         run: make lint
 
@@ -67,10 +65,9 @@ jobs:
       - 
         if: ${{ steps.cache-tarpaulin.outputs.cache-hit != 'true' }}
         run: cargo install cargo-tarpaulin --version=${{ env.TARPAULIN_VERSION }}
-
-      - uses: actions-rs/toolchain@v1
-        with:
-            toolchain: nightly
-            profile: minimal
+      -
+        run: |
+          rustup set profile minimal
+          rustup toolchain install nightly
       -
         run: make coverage
