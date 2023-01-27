@@ -4,7 +4,7 @@ use std::env;
 
 #[derive(Deserialize)]
 pub struct Settings {
-    pub application: AppSetings,
+    pub app: AppSetings,
 }
 
 #[derive(Deserialize)]
