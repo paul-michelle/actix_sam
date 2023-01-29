@@ -1,4 +1,4 @@
-use actix_web::{get, HttpResponse, Responder};
+use lambda_web::actix_web::{get, HttpResponse, Responder};
 
 #[get("/health_check")]
 async fn health_check() -> impl Responder {

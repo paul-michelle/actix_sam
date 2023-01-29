@@ -1,14 +1,15 @@
 #![allow(clippy::async_yields_async)]
 
-use std::collections::HashMap;
+use lambda_web::actix_web::web::Form;
+use lambda_web::actix_web::{post, HttpResponse, Responder};
 
-use actix_web::web::Form;
-use actix_web::{post, HttpResponse, Responder};
-
+use chrono::Utc;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::domain::{
+    ErrorResponse, NewSubscriber, SubscriberEmail, SubscriberExposed, SubscriberName,
+};
 
 #[derive(serde::Deserialize)]
 struct SubsciptionForm {
@@ -41,21 +42,18 @@ async fn subscribe(form: Form<SubsciptionForm>) -> impl Responder {
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
     match save_subscriber_to_db(&new_subscriber).await {
-        Err(_) => {
-            let mut resp_body = HashMap::new();
-            resp_body.insert("error", "Please try again later");
-            HttpResponse::InternalServerError().json(resp_body)
-        }
-        Ok(id) => {
-            let mut resp_body = HashMap::new();
-            resp_body.insert("id", id.to_string());
-            HttpResponse::Created().json(resp_body)
-        }
+        Err(_) => HttpResponse::InternalServerError().json(ErrorResponse::with_message(
+            "Please try again later.".to_string(),
+        )),
+        Ok(details) => HttpResponse::Created().json(details),
     }
 }
 
 #[instrument(name = "SAVE SUBSCRIBER TO DATABASE", skip(_subscriber))]
-async fn save_subscriber_to_db(_subscriber: &NewSubscriber) -> Result<Uuid, std::fmt::Error> {
+async fn save_subscriber_to_db(
+    _subscriber: &NewSubscriber,
+) -> Result<SubscriberExposed, std::fmt::Error> {
     let id = Uuid::new_v4();
-    Ok(id)
+    let created_at = Utc::now();
+    Ok(SubscriberExposed { id, created_at })
 }

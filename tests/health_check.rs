@@ -1,3 +1,4 @@
+use actix_sam::startup::APIStage;
 use fake::faker::{internet::en::SafeEmail, name::raw::Name};
 use fake::locales::{EN, FR_FR, JA_JP};
 use fake::Fake;
@@ -22,7 +23,8 @@ static TRACING_INIT_ONCE: Lazy<()> = Lazy::new(|| {
     init_subscriber(subscriber);
 });
 
-const SUBSCRIBTIONS_ENDPOINT_V1: &'static str = "/api/v1/subscriptions";
+const HEALTH_CHECK_ENDPOINT: &'static str = "/health_check";
+const SUBSCRIBTIONS_ENDPOINT_V1: &'static str = "/subscriptions";
 
 struct TestApp {
     address: String,
@@ -41,7 +43,7 @@ async fn spawn_app() -> TestApp {
     tokio::spawn(awaitable_server);
 
     TestApp {
-        address: format!("http://localhost:{}", port),
+        address: format!("http://localhost:{}/{}", port, APIStage::Dev.as_str()),
     }
 }
 
@@ -50,7 +52,7 @@ async fn health_check_is_ok() {
     let test_app = spawn_app().await;
 
     let resp = reqwest::Client::new()
-        .get(format!("{}/api/health_check", test_app.address))
+        .get(format!("{}{}", test_app.address, HEALTH_CHECK_ENDPOINT))
         .send()
         .await
         .expect("Failed to execute request");

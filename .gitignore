@@ -1,8 +1,4 @@
 /target
 .vscode
-
-.env
-.certs.sh
-.internal
-
-logs.*
+.aws-sam
+/build
