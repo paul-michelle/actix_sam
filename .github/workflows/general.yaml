@@ -1,4 +1,4 @@
-name: Lint, Test
+name: (Lint + Test) -> Build
 
 on:
   push:
@@ -13,8 +13,10 @@ on:
       - master
       - develop
 
-jobs:
+env:
+  SAM_PATH: '/usr/local/bin/sam'
 
+jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -43,31 +45,69 @@ jobs:
     env:
       TARPAULIN_VERSION: 0.23.1
     steps:
-      - 
-        uses: actions/checkout@v3
-      - 
-        uses: actions/cache@v3
-        id: cache-deps
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
         env:
           cache-name: cache-target
         with:
           path: |
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
-            target/
+            target/debug
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
-      - 
-        uses: actions/cache@v3
+
+      - uses: actions/cache@v3
         id: cache-tarpaulin
         with:
           path: ~/.cargo/bin/cargo-tarpaulin
           key: ${{ runner.os }}-tarpaulin-${{ env.TARPAULIN_VERSION }}      
-      - 
-        if: ${{ steps.cache-tarpaulin.outputs.cache-hit != 'true' }}
+      - if: ${{ steps.cache-tarpaulin.outputs.cache-hit != 'true' }}
         run: cargo install cargo-tarpaulin --version=${{ env.TARPAULIN_VERSION }}
-      -
-        run: |
+
+      - run: |
           rustup set profile minimal
           rustup toolchain install nightly
-      -
-        run: make coverage
+      - run: make coverage
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      RUST_CHANNEL: nightly
+      TARGET_ARCH: x86_64-unknown-linux-musl
+      RELEASE_ARTIFACTS_DIR: build
+    steps:
+      - name: ======== PROCURE AWS SAM CLI ========
+        uses: actions/cache@v3
+        id: cache-sam-bin
+        with:
+          path: ${{ env.SAM_PATH }}
+          key: sam-bin
+      - if: ${{ steps.cache-sam-bin.outputs.cache-hit != 'true' }}
+        run: |
+          curl -LO https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip
+          sha256sum aws-sam-cli-linux-x86_64.zip
+          unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
+          sudo ./sam-installation/install --update
+          which sam
+          sam --version
+  
+      - uses: actions/checkout@v3
+      - run: |
+          rustup set profile minimal
+          rustup toolchain install ${{ env.RUST_CHANNEL }}
+          rustup target add ${{ env.TARGET_ARCH }}
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            target/${{ env.TARGET_ARCH }}
+          key: ${{ env.TARGET_ARCH }}-compiled-deps-for-lockfile-hash-${{ hashFiles('**/Cargo.lock') }}
+      - run: make build
+      - run: make package
+      # https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts
+      - uses: actions/upload-artifact@v3
+        with:
+          name: packaged-app
+          path: ${{ env.RELEASE_ARTIFACTS_DIR }}
