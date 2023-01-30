@@ -33,11 +33,17 @@ build:
 package:
 	rm -rf $(ARTIFACTS_DIR) && mkdir -p $(ARTIFACTS_DIR)
 	cp -v ./target/$(ARCH)/release/$(BIN_NAME) ./$(ARTIFACTS_DIR)/bootstrap
+	cp -v ./$(SAM_TEMPLATE) ./$(ARTIFACTS_DIR)/template.yaml
+
+ci-package: package
+	mkdir wrapper
+	cp -v ./Makefile ./wrapper/Makefile
+	mv $(ARTIFACTS_DIR) wrapper
+	mv wrapper $(ARTIFACTS_DIR)
 
 deploy:
-	sam validate --template $(SAM_TEMPLATE)
-	sam deploy \
-	--template $(SAM_TEMPLATE) \
+	sam validate --template ./$(ARTIFACTS_DIR)/template.yaml
+	sam deploy --template ./$(ARTIFACTS_DIR)/template.yaml \
 	--stack-name $(STACK_NAME) \
 	--region $(AWS_REGION) \
 	--resolve-s3 \

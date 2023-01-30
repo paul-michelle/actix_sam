@@ -1,4 +1,4 @@
-name: (Lint + Test) -> Build
+name: (Lint + Test) -> Build -> Deploy
 
 on:
   push:
@@ -14,31 +14,28 @@ on:
       - develop
 
 env:
+  AWS_REGION: 'us-east-1'
   SAM_PATH: '/usr/local/bin/sam'
+  ARTIFACTS_NAME: packaged-app
+  ARTIFACTS_PATH: build
 
 jobs:
+
   lint:
     runs-on: ubuntu-latest
     steps:
-      -
-        uses: actions/checkout@v3
-      - 
-        uses: actions/cache@v3
-        id: cache-deps
-        env:
-          cache-name: cache-target
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
-            target/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
-      -
-        run: |
+            target/debug
+          key: debug-${{ runner.os }}-compiled-deps-for-lockfile-hash-${{ hashFiles('**/Cargo.lock') }}
+      - run: |
           rustup set profile minimal
           rustup toolchain install nightly
-      - 
-        run: make lint
+      - run: make lint
 
   test:
     runs-on: ubuntu-latest
@@ -47,14 +44,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/cache@v3
-        env:
-          cache-name: cache-target
         with:
           path: |
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             target/debug
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+          key: debug-${{ runner.os }}-compiled-deps-for-lockfile-hash-${{ hashFiles('**/Cargo.lock') }}
 
       - uses: actions/cache@v3
         id: cache-tarpaulin
@@ -70,15 +65,40 @@ jobs:
       - run: make coverage
 
   build:
-    needs: test
+    needs: 
+      - lint
+      - test
     runs-on: ubuntu-latest
     env:
       RUST_CHANNEL: nightly
       TARGET_ARCH: x86_64-unknown-linux-musl
-      RELEASE_ARTIFACTS_DIR: build
     steps:
-      - name: ======== PROCURE AWS SAM CLI ========
-        uses: actions/cache@v3
+      - run: |
+          sudo apt-get update -y
+          sudo apt-get install -y musl-tools
+      - uses: actions/checkout@v3
+      - run: rustup toolchain install ${{ env.RUST_CHANNEL }} --target ${{ env.TARGET_ARCH }}
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            target/${{ env.TARGET_ARCH }}
+          key: ${{ env.TARGET_ARCH }}-compiled-deps-for-lockfile-hash-${{ hashFiles('**/Cargo.lock') }}
+      - run: make build
+      - run: make ci-package
+      # https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.ARTIFACTS_NAME }}
+          path: ${{ env.ARTIFACTS_PATH }}
+
+  deploy:
+    needs: 
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/cache@v3
         id: cache-sam-bin
         with:
           path: ${{ env.SAM_PATH }}
@@ -91,23 +111,12 @@ jobs:
           sudo ./sam-installation/install --update
           which sam
           sam --version
-  
-      - uses: actions/checkout@v3
-      - run: |
-          rustup set profile minimal
-          rustup toolchain install ${{ env.RUST_CHANNEL }}
-          rustup target add ${{ env.TARGET_ARCH }}
-      - uses: actions/cache@v3
+      - uses: aws-actions/configure-aws-credentials@v1
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            target/${{ env.TARGET_ARCH }}
-          key: ${{ env.TARGET_ARCH }}-compiled-deps-for-lockfile-hash-${{ hashFiles('**/Cargo.lock') }}
-      - run: make build
-      - run: make package
-      # https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts
-      - uses: actions/upload-artifact@v3
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: actions/download-artifact@v3
         with:
-          name: packaged-app
-          path: ${{ env.RELEASE_ARTIFACTS_DIR }}
+          name: ${{ env.ARTIFACTS_NAME }}
+      - run: make deploy

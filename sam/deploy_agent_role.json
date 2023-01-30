@@ -25,7 +25,7 @@
         {
             "Effect": "Allow",
             "Action": "iam:*",
-            "Resource": "arn:aws:iam::37********43:role/microservice-actix-sam-MicroServiceLambdaRole*"
+            "Resource": "arn:aws:iam::37********43:role/microservice-*-MicroServiceLambdaRole*"
         }
     ]
 }
