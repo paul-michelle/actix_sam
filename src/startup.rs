@@ -1,7 +1,7 @@
 use crate::routes::{health_check, subscribe};
+use actix_web::{dev::Server, web, App, HttpServer};
+use lambda_actix_adapter::run_actix_on_lambda;
 
-use lambda_web::actix_web::{dev::Server, web, App, HttpServer};
-use lambda_web::run_actix_on_lambda;
 use tracing_actix_web::TracingLogger;
 
 pub enum APIStage {

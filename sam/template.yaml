@@ -1,16 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  lambda-rust
-
-  Sample SAM Template for Rust / Actix Web
+Description: Sample SAM Template for Actix-Web-driven Mirco-Service on Lambda
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Api:
     BinaryMediaTypes:
       - application~1zip
-    
   Function:
     Timeout: 29
     Environment:
@@ -19,6 +15,7 @@ Globals:
     Layers: []
 
 Resources:
+
   MicroServiceLambda:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -31,13 +28,15 @@ Resources:
         Root:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /
             Method: ANY
+            Path: /
+ 
         NonRoot:
           Type: Api
           Properties:
-            Path: /{proxy+}
             Method: ANY
+            Path: /{proxy+}
+
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

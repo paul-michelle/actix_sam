@@ -1,15 +1,14 @@
 use actix_sam::settings::get_local_settings;
 use actix_sam::startup::{run, run_on_lambda};
 use actix_sam::telemetry::{get_subscriber, init_subscriber};
-use lambda_web::is_running_on_lambda;
 use std::net::TcpListener;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let subscriber = get_subscriber("actix_sam".into(), "actix_sam=info".into(), std::io::stdout);
     init_subscriber(subscriber);
-
-    if is_running_on_lambda() {
+    
+    if std::env::var("AWS_LAMBDA_RUNTIME_API").is_ok() {
         run_on_lambda().await;
         return Ok(());
     }

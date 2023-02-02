@@ -1,7 +1,7 @@
 #![allow(clippy::async_yields_async)]
 
-use lambda_web::actix_web::web::Form;
-use lambda_web::actix_web::{post, HttpResponse, Responder};
+use actix_web::web::Form;
+use actix_web::{post, HttpResponse, Responder};
 
 use chrono::Utc;
 use tracing::instrument;

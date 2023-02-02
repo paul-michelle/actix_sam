@@ -49,7 +49,8 @@ deploy:
 	--resolve-s3 \
 	--capabilities CAPABILITY_IAM \
 	--no-confirm-changeset \
-	--no-fail-on-empty-changeset
+	--no-fail-on-empty-changeset \
+	--force-upload
 
 destroy:
 	sam delete \
