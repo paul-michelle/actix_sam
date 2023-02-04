@@ -11,8 +11,8 @@ path = "src/main.rs"
 name = "bootstrap"
 
 [dependencies]
-actix-web = "4"
-lambda_actix_adapter = { version = "0.1.0", path = "lambda_actix_adapter" }
+actix-web = "4.3.0"
+lambda-web = { version = "0.2.1", path = "./lambda_web", features=["actix4"]}
 
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 config = "0.13"

@@ -22,7 +22,7 @@ Resources:
       Runtime: provided.al2
       Architectures:
         - x86_64
-      CodeUri: ../build
+      CodeUri: build
       Handler: bootstrap.is.the.handler
       Events:
         Root:
@@ -30,7 +30,6 @@ Resources:
           Properties:
             Method: ANY
             Path: /
- 
         NonRoot:
           Type: Api
           Properties:

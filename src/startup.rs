@@ -1,7 +1,5 @@
 use crate::routes::{health_check, subscribe};
 use actix_web::{dev::Server, web, App, HttpServer};
-use lambda_actix_adapter::run_actix_on_lambda;
-
 use tracing_actix_web::TracingLogger;
 
 pub enum APIStage {
@@ -37,7 +35,7 @@ pub async fn run(listener: std::net::TcpListener) -> Result<Server, std::io::Err
 
 pub async fn run_on_lambda() {
     let prod_prefix = format!("/{}", APIStage::Prod.as_str());
-    run_actix_on_lambda(move || {
+    lambda_web::run_actix_on_lambda(move || {
         App::new()
             .wrap(TracingLogger::default())
             .service(web::scope(&prod_prefix).configure(scoped_config))
