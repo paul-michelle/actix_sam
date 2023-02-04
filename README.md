@@ -45,4 +45,11 @@ make build
 make package
 make deploy
 ```
+
+Get the API Gateway endpoint from the outputs sections in stdout and hit the `/subsriptions` POST with urlecoded form data:
+![demo](demos/subscriptions_post_illustration.png) <br>
+Note that in case of lambda's cold-start, the latency may reach 1.5 seconds. Subsequet calls will (should) be much faster.
+
+### Important
+
 Do not forget to clean up with `make destroy` to avoid unwanted costs. Alternatively, you can delete the stack via AWS Console (CloudFormation service).
