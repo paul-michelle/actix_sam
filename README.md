@@ -38,3 +38,11 @@ Deploy your application with [AWS SAM](https://docs.aws.amazon.com/serverless-ap
 ```
 Its core has been taken from AWS-managed PowerUser. We are just assigning some additional IAM perms wih regard to concrete lambda resource.
 In case you are operating on a limited scope of resource, you will want to cap those permissions, adhering to the principle of least privilege.
+
+Upon AWS credentials setup, run
+```
+make build
+make package
+make deploy
+```
+Do not forget to clean up with `make destroy` to avoid unwanted costs. Alternatively, you can delete the stack via AWS Console (CloudFormation service).
